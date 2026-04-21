@@ -1,51 +1,76 @@
 import socket
 import threading
-from time import sleep
+from datetime import datetime
 
-HOST = "0.0.0.0"
-PORT = 9002
+HOST = "127.0.0.1"
+PORT = 3000
 
-WAITING_TIME = 3
+clientes = [] #lista de clientes conectados
+semaforo = threading.Semaphore(1) #controlador de acesso a lista
 
-def atender_cliente(conn, addr):
-    print(f"[Server] Nova conexão {addr}", flush=True)
+def transmitir(mensagem):
+    semaforo.acquire() #bloqueia a lista
+    for cliente in clientes:
+        try:
+            cliente.sendall(mensagem.encode("utf-8"))
+        except: 
+            #em caso de erro ao enviar menagem ao cliente o remove da lista
+            clientes.remove(cliente)
+    semaforo.release() #libera a lista
 
-    with conn:
-        data = conn.recv(1024)
-
-        mensagem = data.decode("utf-8")
-        print(f"[Server] Recebido de {addr}: {mensagem}", flush=True )
-
-        print(f"[Server] Processando mensagem..", flush=True )
-        resposta = mensagem.upper()
-        sleep(WAITING_TIME)
+def ligar_ao_chat(conn, addr):
+    try:
+        #identificação do cliente
+        conn.sendall("Digite seu nome: ".encode("utf-8"))
+        nome = conn.recv(1024).decode("utf-8")
+        nome = nome.upper()
         
-        conn.sendall(resposta.encode("utf-8"))
+        #anuncio de conexão do cliente
+        if nome != "Espectador":
+            anuncio = f"[SERVER] {nome} entrou no chat!"
+            print(anuncio)
+            transmitir(anuncio)
 
-        print(f"[Server] Respondido para {addr}: {resposta}", flush=True)
-
-
-    print(f"[Server] Conexão encerrada {addr}", flush=True)
-
+        #loop de recebimento de mensagens do cliente
+        while True:
+            msg_bytes = conn.recv(1024)
+            if msg_bytes:
+                hora = datetime.now().strftime("%H:%M:%S")  
+                msg_texto = msg_bytes.decode("utf-8")
+                transmitir(f"{nome}, {addr}, {hora}: {msg_texto}")
+            else:
+                #caso o cliente se desconecte da conexão ele manda null
+                break
+    finally:
+        #em caso de qualquer coisa que acabe com o loop infinito o cliente eh desconectado
+        if conn in clientes:
+            semaforo.acquire()
+            clientes.remove(conn)
+            semaforo.release()
+        conn.close()
+        
 
 def iniciar_servidor():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind((HOST, PORT))
-        server.listen()
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #para evitar o erro de porta em uso
+    server.bind((HOST, PORT))
+    server.listen()
 
-        print(f"Servidor ouvindo em {HOST}:{PORT}")
+    print(f"Servidor de chat online na porta: {PORT}")
 
-        while True:
-            conn, addr = server.accept()
+    while True:
+        conn, addr = server.accept()
 
-            thread = threading.Thread(
-                target=atender_cliente,
-                args=(conn, addr),
-                daemon=True
-            )
-            thread.start()
+        semaforo.acquire()
+        clientes.append(conn)
+        semaforo.release()
 
+        thread = threading.Thread(
+            target=ligar_ao_chat,
+            args=(conn, addr),
+            daemon=True) #define que ao finalizar o codigo as threads também serão finalizadas
+        thread.start()
+    
 
 if __name__ == "__main__":
     iniciar_servidor()
