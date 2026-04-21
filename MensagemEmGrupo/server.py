@@ -37,7 +37,7 @@ def ligar_ao_chat(conn, addr):
             if msg_bytes:
                 hora = datetime.now().strftime("%H:%M:%S")  
                 msg_texto = msg_bytes.decode("utf-8")
-                transmitir(f"{nome}, {addr}, {hora}: {msg_texto}")
+                transmitir(f"{nome}, {addr[0]}, {hora}: {msg_texto}")
             else:
                 #caso o cliente se desconecte da conexão ele manda null
                 break
