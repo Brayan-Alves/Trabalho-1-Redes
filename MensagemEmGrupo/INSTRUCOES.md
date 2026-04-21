@@ -2,7 +2,7 @@
 ## O quê é este projeto?
 Este sistema foi desenvolvido com o objetivo de criar um grupo de conversa usando conhecimentos adquiridos nas aulas de Redes, como sockets e threads. O sistema é composto por três arquivos, sendo um servidor que gerencia as mensagens e dois tipos de clientes, um para envio e outro para visualização.
 ## Arquivos
-- **clienteEnv.py**:  Interface para o usuário enviar textos.
+- **clientEnv.py**:  Interface para o usuário enviar textos.
 - **clientRec.py**: Terminal focado em receber mensagens já formatadas.
 - **server.py**: Arquivo que centraliza as conexões e gerencia a fila de mensagens.
 ## Instruções para rodar Mensagem em Grupo
