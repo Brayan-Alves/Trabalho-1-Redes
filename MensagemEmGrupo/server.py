@@ -2,8 +2,8 @@ import socket
 import threading
 from datetime import datetime
 
-HOST = "127.0.0.1"
-PORT = 3001
+HOST = "0.0.0.0"
+PORT = 3000
 
 clientes = [] #guarda as conexões que iram receber mensagens no servidor/espectadores
 fila_mensagens = [] #fila de mensagens recebidas dos usuarios

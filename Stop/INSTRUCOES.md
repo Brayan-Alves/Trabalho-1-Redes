@@ -10,7 +10,7 @@ Este sistema foi desenvilvido com o objetivo de criar um jogo STOP usando conhec
 
 ## Instruções para rodar o STOP
 
-Primeiramente deve-se verificar se o endereço em `HOST` é o mesmo em todos os arquivos. Após essa verificação você deve:
+Primeiramente caso o código seja aplicado em máquinas diferentes deve-se verificar se o endereço `HOST` do servidor seja `0.0.0.0` e o do cliente seja o endereço do computador que esta rodando o servidor. Caso o uso seja em um mesmo computador o `HOST` deve ser `127.0.0.1` nos arquivos. Já `PORT` deve ser igual em todos os arquivos independentemente. Após essa verificação você deve:
 
 1. No terminal execute o comando `python3 server.py` para executar o arquivo do servidor.
   ```bash
