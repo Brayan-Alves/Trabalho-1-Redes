@@ -3,50 +3,70 @@ import threading
 from datetime import datetime
 
 HOST = "127.0.0.1"
-PORT = 3000
+PORT = 3001
 
-clientes = [] #lista de clientes conectados
-semaforo = threading.Semaphore(1) #controlador de acesso a lista
+clientes = [] #guarda as conexões que iram receber mensagens no servidor/espectadores
+fila_mensagens = [] #fila de mensagens recebidas dos usuarios
 
-def transmitir(mensagem):
-    with semaforo:
-        for cliente in clientes:
-            try:
-                cliente.sendall(mensagem.encode("utf-8"))
-            except: 
-            #em caso de erro ao enviar menagem ao cliente o remove da lista
-                clientes.remove(cliente)
+semaforo_fila = threading.Semaphore(1) #para controlar o acesso das threads a fila de mensagens
+itens_na_fila = threading.Semaphore(0) #para sinalizar se a algo na fila de mensgame
+semaforo_clientes = threading.Semaphore(1) #para controlar a lista de conexões
 
-def ligar_ao_chat(conn, addr):
+#uma thread ficara nessa função esperando ateh q consiga dar um acquire em itens_na_fila = ter alguma mensagem na fila e enviara a mensagem a todos os espectadores
+def processar_fila():
+    while True:
+        itens_na_fila.acquire()
+
+        with semaforo_fila:
+            msg = fila_mensagens.pop(0)
+
+        with semaforo_clientes:
+            for cliente in clientes:
+                try:
+                    cliente.sendall(msg.encode("utf-8"))
+                except:
+                    clientes.remove(cliente)
+
+
+def atender_cliente(conn, addr):
     try:
-        #identificação do cliente
-        conn.sendall("Digite seu nome: ".encode("utf-8"))
-        nome = conn.recv(1024).decode("utf-8")
-        nome = nome.upper()
-        
-        #anuncio de conexão do cliente
-        if nome != "Espectador":
-            anuncio = f"[SERVER] {nome} entrou no chat!"
-            print(anuncio)
-            transmitir(anuncio)
+        nome = conn.recv(1024).decode("utf-8").strip()
 
-        #loop de recebimento de mensagens do cliente
-        while True:
-            msg_bytes = conn.recv(1024)
-            if msg_bytes:
-                hora = datetime.now().strftime("%H:%M:%S")  
+        #caso o nome do cliente seja espectador ele entrara no vetor de clientese esta pronto para receber mensagens
+        if nome == "ESPECTADOR":
+            with semaforo_clientes:
+                clientes.append(conn)
+            print(f"[SERVER] Cliente de RECEBIMENTO conectado: {addr}")
+
+            while True:
+                if not conn.recv(1024):
+                    break
+        #caso o nome seja qualquer outra coisa sera um cliente de envio, assim apenas podendo enviar mensagens ao servidor
+        else:
+            nome = nome.upper()
+            print(f"[SERVER] Cliente de ENVIO conectado: {nome} {addr}")
+
+            while True:
+                msg_bytes = conn.recv(1024)
+                if not msg_bytes:
+                    break
+                    
                 msg_texto = msg_bytes.decode("utf-8")
-                transmitir(f"{nome}, {addr[0]}, {hora}: {msg_texto}")
-            else:
-                #caso o cliente se desconecte da conexão ele manda null
-                break
+                hora = datetime.now().strftime("%H:%M:%S")
+
+                msg_final = f"[{hora}] {nome} ({addr[0]}): {msg_texto}"
+                
+                with semaforo_fila:
+                    fila_mensagens.append(msg_final)
+
+                itens_na_fila.release()
+    #se o cliente espectador se desconectarem são removidos da lista
     finally:
-        #em caso de qualquer coisa que acabe com o loop infinito o cliente eh desconectado
-        if conn in clientes:
-            with semaforo:
+        with semaforo_clientes:
+            if conn in clientes:
                 clientes.remove(conn)
         conn.close()
-        
+ 
 
 def iniciar_servidor():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,16 +76,13 @@ def iniciar_servidor():
 
     print(f"Servidor de chat online na porta: {PORT}")
 
+    thread_fila = threading.Thread(target=processar_fila, daemon=True)
+    thread_fila.start()
+
     while True:
         conn, addr = server.accept()
 
-        with semaforo:
-            clientes.append(conn)
-
-        thread = threading.Thread(
-            target=ligar_ao_chat,
-            args=(conn, addr),
-            daemon=True) #define que ao finalizar o codigo as threads também serão finalizadas
+        thread = threading.Thread(target=atender_cliente, args=(conn, addr), daemon=True)
         thread.start()
     
 
