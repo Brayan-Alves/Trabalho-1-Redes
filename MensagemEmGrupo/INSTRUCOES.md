@@ -18,12 +18,12 @@ Primeiramente deve-se verificar se o endereço em `HOST` é o mesmo em todos os 
   python3 server.py
   ```
 
-2. Em seguida execute o comando `python3 clientRec.py` no terminal para abrir a tela de recebimento de mensagens.
+2. Em seguida execute o comando `python3 clientRec.py` em outro terminal para abrir a tela de recebimento de mensagens.
   ```bash
   python3 clientRec.py
   ```
 
-3. Agora execute o comando `python3 clienteEnv.py` no terminal, digite um nome e começe a enviar suas mensagens de texto pelo terminal.
+3. Agora execute o comando `python3 clienteEnv.py` em outro terminal, digite um nome e começe a enviar suas mensagens de texto pelo terminal.
   ```bash
   python3 clienteEnv.py
   ```
