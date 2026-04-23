@@ -28,6 +28,7 @@ semaforo = threading.Semaphore(1)
 barreira = threading.Barrier(NUMERO_JOGADORES) #o código espera ateh que todos os jogadores cheguem aql linha do codigo
 letra_atual = ""
 
+#envia para todos os clientes
 def trasmitir(mensagem):
     for cliente in clientes:
         try:
@@ -35,18 +36,21 @@ def trasmitir(mensagem):
         except:
             pass
 
+#formata a mensgame para ser enviada
 def formatar_mensagem(id_jogador, texto):
     horario = datetime.now().strftime("%H:%M:%S")
     nome = nomes[id_jogador]
     ip = ips[id_jogador]
     return f"[{horario}] {nome} ({ip}): {texto}"
 
+#sortea uma letra para o Stop
 def sortear_letra():
     letras_disponiveis = [l for l in ALFABETO if l not in letras_sorteadas]
     letra = random.choice(letras_disponiveis)
     letras_sorteadas.append(letra)
     return letra
 
+#conta os ponto de acordo com a ocorrencia das palavras, ou no caso de a primeira letra n ser correta
 def contar_pontos(vetor, id_jogador, letra):
     resposta = vetor[id_jogador].strip().upper()
 
@@ -57,6 +61,7 @@ def contar_pontos(vetor, id_jogador, letra):
 
     return 1 if ocorrencias > 1 else 3
 
+#verifica o vencedor e imprimi
 def analisar_vencedor():
     pontuação_maior = max(pontos)
     id_vencedor = pontos.index(pontuação_maior)
@@ -69,13 +74,15 @@ def analisar_vencedor():
 
     trasmitir(anuncio_fim)
 
-
+#logia principal das rodadas
 def iniciar_rodada(conn,addr,id_jogador):
     global letra_atual
 
+    #identifica um usuario
     conn.sendall("Digite seu Nome: ".encode("utf-8"))
     nome_recebido = conn.recv(1024).decode("utf-8").strip()
 
+    #guarda nas listas as informações dos jogadores de acordo com o id/indice
     with semaforo:
         nomes[id_jogador] = nome_recebido
         ips[id_jogador] = addr[0]
@@ -86,6 +93,7 @@ def iniciar_rodada(conn,addr,id_jogador):
 
     barreira.wait()
 
+    #loop das rodadas
     for x in range(1, NUMERO_RODADAS+1):
 
         if id_jogador == 0:
@@ -114,6 +122,7 @@ def iniciar_rodada(conn,addr,id_jogador):
 
         barreira.wait()
 
+        #calcula os pontos do jogador na rodada
         with semaforo:
             pts_rodada = 0
             pts_rodada += contar_pontos(tema_nome, id_jogador, letra_atual)
@@ -126,6 +135,7 @@ def iniciar_rodada(conn,addr,id_jogador):
         msg_fim = formatar_mensagem(id_jogador, f"Fez {pts_rodada} pontos na rodada. Total: {pontos[id_jogador]}")
         conn.sendall(msg_fim.encode("utf-8"))
 
+        #zera as respostas da rodada
         with semaforo:
             tema_nome[id_jogador] = ""
             tema_cep[id_jogador] = ""
