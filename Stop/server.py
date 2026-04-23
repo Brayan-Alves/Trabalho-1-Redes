@@ -11,18 +11,21 @@ NUMERO_JOGADORES = 2
 NUMERO_RODADAS = 2
 ALFABETO = list(string.ascii_uppercase)
 
-clientes = []
+clientes = [] #guarda as conexões dos jogadores
+#guarda o nome e o ip de cada jogador vinculado ao ID = indice
 nomes = [""] * NUMERO_JOGADORES
 ips = [""] * NUMERO_JOGADORES
 
+#guarda as respostas dos jogadores em cada rodada
 tema_nome = [""] * NUMERO_JOGADORES
 tema_cep = [""] * NUMERO_JOGADORES
 tema_musica = [""] * NUMERO_JOGADORES
-pontos = [0] * NUMERO_JOGADORES
-letras_sorteadas = []
+
+pontos = [0] * NUMERO_JOGADORES #guarda os pontos totas de cada jogador
+letras_sorteadas = [] #letras já escollhidas na partida
 
 semaforo = threading.Semaphore(1)
-barreira = threading.Barrier(NUMERO_JOGADORES)
+barreira = threading.Barrier(NUMERO_JOGADORES) #o código espera ateh que todos os jogadores cheguem aql linha do codigo
 letra_atual = ""
 
 def trasmitir(mensagem):
