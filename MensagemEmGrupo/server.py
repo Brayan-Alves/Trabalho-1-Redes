@@ -9,14 +9,13 @@ clientes = [] #lista de clientes conectados
 semaforo = threading.Semaphore(1) #controlador de acesso a lista
 
 def transmitir(mensagem):
-    semaforo.acquire() #bloqueia a lista
-    for cliente in clientes:
-        try:
-            cliente.sendall(mensagem.encode("utf-8"))
-        except: 
+    with semaforo:
+        for cliente in clientes:
+            try:
+                cliente.sendall(mensagem.encode("utf-8"))
+            except: 
             #em caso de erro ao enviar menagem ao cliente o remove da lista
-            clientes.remove(cliente)
-    semaforo.release() #libera a lista
+                clientes.remove(cliente)
 
 def ligar_ao_chat(conn, addr):
     try:
@@ -44,9 +43,8 @@ def ligar_ao_chat(conn, addr):
     finally:
         #em caso de qualquer coisa que acabe com o loop infinito o cliente eh desconectado
         if conn in clientes:
-            semaforo.acquire()
-            clientes.remove(conn)
-            semaforo.release()
+            with semaforo:
+                clientes.remove(conn)
         conn.close()
         
 
@@ -61,9 +59,8 @@ def iniciar_servidor():
     while True:
         conn, addr = server.accept()
 
-        semaforo.acquire()
-        clientes.append(conn)
-        semaforo.release()
+        with semaforo:
+            clientes.append(conn)
 
         thread = threading.Thread(
             target=ligar_ao_chat,
