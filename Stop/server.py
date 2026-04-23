@@ -6,19 +6,18 @@ import time
 from datetime import datetime
 
 HOST = "127.0.0.1"
-PORT = 3000
+PORT = 3001
 NUMERO_JOGADORES = 2
 NUMERO_RODADAS = 2
 ALFABETO = list(string.ascii_uppercase)
 
 clientes = []
-
 nomes = [""] * NUMERO_JOGADORES
 ips = [""] * NUMERO_JOGADORES
 
-tema_nome = [None] * NUMERO_JOGADORES
-tema_cep = [None] * NUMERO_JOGADORES
-tema_musica = [None] * NUMERO_JOGADORES
+tema_nome = [""] * NUMERO_JOGADORES
+tema_cep = [""] * NUMERO_JOGADORES
+tema_musica = [""] * NUMERO_JOGADORES
 pontos = [0] * NUMERO_JOGADORES
 letras_sorteadas = []
 
@@ -53,12 +52,7 @@ def contar_pontos(vetor, id_jogador, letra):
     
     ocorrencias = sum(1 for r in vetor if r.strip().upper() == resposta)
 
-    if ocorrencias > 1:
-        pontos[id_jogador] += 1
-        return 1
-    else:
-        pontos[id_jogador] == 3
-        return 3
+    return 1 if ocorrencias > 1 else 3
 
 def analisar_vencedor():
     pontuação_maior = max(pontos)
@@ -66,7 +60,7 @@ def analisar_vencedor():
     nome_vencedor = nomes[id_vencedor]
 
 
-    anuncio_fim = (f"\n--- Fim de Jogo! ---\nVencedor: {nome_vencedor} com {pontuação_maior} pontos!\n--- Placar Final ---")
+    anuncio_fim = (f"\n--- Fim de Jogo! ---\nVencedor: {nome_vencedor} com {pontuação_maior} pontos!\n\n--- Placar Final ---\n")
     for i in range(NUMERO_JOGADORES):
         anuncio_fim += f"{nomes[i]} = {pontos[i]} pontos\n"
 
@@ -122,7 +116,7 @@ def iniciar_rodada(conn,addr,id_jogador):
             pts_rodada += contar_pontos(tema_nome, id_jogador, letra_atual)
             pts_rodada += contar_pontos(tema_cep, id_jogador, letra_atual)
             pts_rodada += contar_pontos(tema_musica, id_jogador, letra_atual)
-            pontos[id_jogador] = pts_rodada
+            pontos[id_jogador] += pts_rodada
 
         barreira.wait()
 
@@ -138,12 +132,7 @@ def iniciar_rodada(conn,addr,id_jogador):
 
     if id_jogador == 0:
         analisar_vencedor()
-
-
-if id == NUMERO_JOGADORES:
-    analisar_vencedor()
-        
-    
+           
 
 def iniciar_servidor():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -164,9 +153,6 @@ def iniciar_servidor():
 
         thread = threading.Thread(target=iniciar_rodada, args=(conn, addr, id_atual))
         thread.start()
-
-    while True:
-        pass
 
     
 
